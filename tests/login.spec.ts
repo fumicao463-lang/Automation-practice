@@ -41,4 +41,50 @@ test.describe('Login', () => {
     await expect(page.locator(loginLocators.errorMessage))
         .toContainText('Your password is invalid!');
   });
+  test('Kiểm tra hiển thị thông báo khi nhập username đúng và password sai', {
+    tag: ['@Staging', '@Prod', '@login'],
+  }, async ({ page }) => {
+    const loginPage = new LoginPage(page);
+    await loginPage.open();
+    await loginPage.login(env.USER_NAME, 'wrong-password');
+
+    await expect(page.locator(loginLocators.errorMessage))
+        .toBeVisible();
+
+    await expect(page.locator(loginLocators.errorMessage))
+        .toContainText('Your password is invalid!');
+  });
+
+  test('Đăng nhập thành công khi nhập username chứa dấu cách ở đầu và cuối giá trị và password đúng', {
+    tag: ['@Staging', '@Prod', '@login'],
+  }, async ({ page }) => {
+    const loginPage = new LoginPage(page);
+    await loginPage.open();
+    await loginPage.login('  student ', env.PASSWORD);
+    await expect(page).toHaveURL(urls.secure);
+    expect(page.locator(securePageLocators.successHeading)).toContainText(urlsTexts.secure);
+    expect(page.getByRole('link', { name: securePageTexts.logoutButton })).toBeVisible();
+  });
+
+  test.describe('Kiểm tra hiển thị thông báo lỗi khi nhập username sai', () => {
+    const invalidUsernameCases = [
+      { name: 'username rỗng', username: '', password: env.PASSWORD, expectedError: 'Your username is invalid!' },
+      { name: 'username toàn số', username: '123456', password: env.PASSWORD, expectedError: 'Your username is invalid!' },
+      { name: 'username chứa ký tự đặc biệt', username: 'stu@#$%', password: env.PASSWORD, expectedError: 'Your username is invalid!' },
+      { name: 'username quá dài (100 ký tự)', username: 'a'.repeat(100), password: env.PASSWORD, expectedError: 'Your username is invalid!' },
+    ];
+
+    for (const c of invalidUsernameCases) {
+      test(`Hiển thị lỗi khi ${c.name}`, {
+        tag: ['@Staging', '@Prod', '@login'],
+      }, async ({ page }) => {
+        const loginPage = new LoginPage(page);
+        await loginPage.open();
+        await loginPage.login(c.username, c.password);
+
+        await expect(page.locator(loginLocators.errorMessage)).toBeVisible();
+        await expect(page.locator(loginLocators.errorMessage)).toContainText(c.expectedError);
+      });
+    }
+  });
 });
