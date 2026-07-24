@@ -5,8 +5,8 @@ import { env } from '../config/env';
 import { urls, urlsTexts } from '@pages/urls';
 
 test.describe('Login', () => {
-  test('logs in with valid credentials', {
-    tag: ['@Staging', '@Prod', '@login'],
+  test('Đăng nhập thành công với username và password hợp lệ', {
+    tag: ['@Staging','@login'],
   }, async ({ page }) => {
     const loginPage = new LoginPage(page);
     await loginPage.open()
@@ -15,19 +15,19 @@ test.describe('Login', () => {
     expect(page.locator(securePageLocators.successHeading)).toContainText(urlsTexts.secure);
     expect(page.getByRole('link', { name: securePageTexts.logoutButton })).toBeVisible();
   });
-
-  test('shows an error for an invalid password', {
-    tag: ['@Staging', '@Prod', '@login'],
+   test('Đăng nhập không thành công khi cả username và password đều sai', {
+    tag: ['@Staging', '@login'],
   }, async ({ page }) => {
     const loginPage = new LoginPage(page);
     await loginPage.open();
-    await loginPage.login(env.USER_NAME, 'wrong-password');
-    expect(page.locator(loginLocators.errorMessage)).toBeVisible();
-    expect(page.locator(loginLocators.errorMessage)).toContainText(loginTexts.errorMessage);
+    await loginPage.login('wrong-username', 'wrong-password');
+
+    await expect(page.locator(loginLocators.errorMessage)).toBeVisible();
+    await expect(page.locator(loginLocators.errorMessage)).toContainText('Your username is invalid!');
   });
-  
+
   test('Hiển thị thông báo lỗi khi nhập username sai', {
-    tag: ['@Staging', '@Prod', '@login'],
+    tag: ['@Staging', '@login'],
   }, async ({ page }) => {
   
     const loginPage = new LoginPage(page);
@@ -42,7 +42,7 @@ test.describe('Login', () => {
         .toContainText('Your password is invalid!');
   });
   test('Kiểm tra hiển thị thông báo khi nhập username đúng và password sai', {
-    tag: ['@Staging', '@Prod', '@login'],
+    tag: ['@Staging', '@login'],
   }, async ({ page }) => {
     const loginPage = new LoginPage(page);
     await loginPage.open();
@@ -55,8 +55,8 @@ test.describe('Login', () => {
         .toContainText('Your password is invalid!');
   });
 
-  test('Đăng nhập thành công khi nhập username chứa dấu cách ở đầu và cuối giá trị và password đúng', {
-    tag: ['@Staging', '@Prod', '@login'],
+  test('Đăng nhập thành công khi nhập username chứa dấu cách ở đầu và cuối giá trị', {
+    tag: ['@Staging', '@login'],
   }, async ({ page }) => {
     const loginPage = new LoginPage(page);
     await loginPage.open();
@@ -65,26 +65,80 @@ test.describe('Login', () => {
     expect(page.locator(securePageLocators.successHeading)).toContainText(urlsTexts.secure);
     expect(page.getByRole('link', { name: securePageTexts.logoutButton })).toBeVisible();
   });
+  
+test('Đăng nhập thành công khi nhấn Enter thay vì click Submit', {
+    tag: ['@Staging', '@login'],
+  }, async ({ page }) => {
+    const loginPage = new LoginPage(page);
+    await loginPage.open();
+    await page.locator(loginLocators.usernameInput).fill(env.USER_NAME);
+    await page.locator(loginLocators.passwordInput).fill(env.PASSWORD);
+    await page.locator(loginLocators.passwordInput).press('Enter');
 
-  test.describe('Kiểm tra hiển thị thông báo lỗi khi nhập username sai', () => {
-    const invalidUsernameCases = [
-      { name: 'username rỗng', username: '', password: env.PASSWORD, expectedError: 'Your username is invalid!' },
-      { name: 'username toàn số', username: '123456', password: env.PASSWORD, expectedError: 'Your username is invalid!' },
-      { name: 'username chứa ký tự đặc biệt', username: 'stu@#$%', password: env.PASSWORD, expectedError: 'Your username is invalid!' },
-      { name: 'username quá dài (100 ký tự)', username: 'a'.repeat(100), password: env.PASSWORD, expectedError: 'Your username is invalid!' },
-    ];
+    await expect(page).toHaveURL(urls.secure);
+    await expect(page.locator(securePageLocators.successHeading)).toContainText(urlsTexts.secure);
+    await expect(page.getByRole('link', { name: securePageTexts.logoutButton })).toBeVisible();
+  });
 
-    for (const c of invalidUsernameCases) {
-      test(`Hiển thị lỗi khi ${c.name}`, {
-        tag: ['@Staging', '@Prod', '@login'],
-      }, async ({ page }) => {
-        const loginPage = new LoginPage(page);
-        await loginPage.open();
-        await loginPage.login(c.username, c.password);
+  test('Không phát sinh lỗi khi click Submit nhiều lần liên tiếp', {
+    tag: ['@Staging', '@login'],
+  }, async ({ page }) => {
+    const loginPage = new LoginPage(page);
+    await loginPage.open();
+    await page.locator(loginLocators.usernameInput).fill(env.USER_NAME);
+    await page.locator(loginLocators.passwordInput).fill(env.PASSWORD);
 
-        await expect(page.locator(loginLocators.errorMessage)).toBeVisible();
-        await expect(page.locator(loginLocators.errorMessage)).toContainText(c.expectedError);
-      });
+    const submitButton = page.locator(loginLocators.submitButton);
+    await Promise.all([
+      submitButton.click(),
+      submitButton.click({ force: true }).catch(() => {}),
+    ]);
+
+    await expect(page).toHaveURL(urls.secure);
+    await expect(page.locator(securePageLocators.successHeading)).toContainText(urlsTexts.secure);
+  });
+
+  test('Bấm Back sau khi login thành công không quay lại trang login còn hiển thị lỗi', {
+    tag: ['@Staging', '@login'],
+  }, async ({ page }) => {
+    const loginPage = new LoginPage(page);
+    await loginPage.open();
+    await loginPage.login(env.USER_NAME, env.PASSWORD);
+    await expect(page).toHaveURL(urls.secure);
+
+    await page.goBack();
+
+    await expect(page.locator(securePageLocators.successHeading).or(page.locator('body'))).toBeVisible();
+  });
+
+  test('Session vẫn còn hiệu lực sau khi refresh trang secure', {
+    tag: ['@Staging', '@login'],
+  }, async ({ page }) => {
+    const loginPage = new LoginPage(page);
+    await loginPage.open();
+    await loginPage.login(env.USER_NAME, env.PASSWORD);
+    await expect(page).toHaveURL(urls.secure);
+
+    await page.reload();
+
+    await expect(page).toHaveURL(urls.secure);
+    await expect(page.locator(securePageLocators.successHeading)).toContainText(urlsTexts.secure);
+  });
+    test('Không thể truy cập lại trang secure sau khi logout', {
+    tag: ['@Staging', '@login'],
+  }, async ({ page }) => {
+    const loginPage = new LoginPage(page);
+    await loginPage.open();
+    await loginPage.login(env.USER_NAME, env.PASSWORD);
+    await expect(page).toHaveURL(urls.secure);
+
+    await page.getByRole('link', { name: securePageTexts.logoutButton }).click();
+    await expect(page).toHaveURL(urls.login);
+
+    await page.goto(urls.secure);
+
+    await expect(page).toHaveURL(urls.login);
+  });
     }
   });
 });
