@@ -35,3 +35,10 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 30
+
+      - name: Notify Google Chat on failure
+        if: failure()
+        run: |
+          curl -X POST "${{ secrets.GOOGLE_CHAT_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"text\": \"❌ Playwright tests failed on branch \`${{ github.ref_name }}\`\nCommit: ${{ github.sha }}\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
