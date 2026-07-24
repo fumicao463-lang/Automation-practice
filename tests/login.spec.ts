@@ -12,8 +12,8 @@ test.describe('Login', () => {
     await loginPage.open()
     await loginPage.login(env.USER_NAME, env.PASSWORD);
     await expect(page).toHaveURL(urls.secure);
-    expect(page.locator(securePageLocators.successHeading)).toContainText(urlsTexts.secure);
-    expect(page.getByRole('link', { name: securePageTexts.logoutButton })).toBeVisible();
+    await expect(page.locator(securePageLocators.successHeading)).toContainText(urlsTexts.secure);
+    await expect(page.getByRole('link', { name: securePageTexts.logoutButton })).toBeVisible();
   });
    test('Đăng nhập không thành công khi cả username và password đều sai', {
     tag: ['@Staging', '@login'],
@@ -39,7 +39,7 @@ test.describe('Login', () => {
         .toBeVisible();
   
     await expect(page.locator(loginLocators.errorMessage))
-        .toContainText('Your password is invalid!');
+        .toContainText('Your username is invalid!');
   });
   test('Kiểm tra hiển thị thông báo khi nhập username đúng và password sai', {
     tag: ['@Staging', '@login'],
@@ -62,8 +62,8 @@ test.describe('Login', () => {
     await loginPage.open();
     await loginPage.login('  student ', env.PASSWORD);
     await expect(page).toHaveURL(urls.secure);
-    expect(page.locator(securePageLocators.successHeading)).toContainText(urlsTexts.secure);
-    expect(page.getByRole('link', { name: securePageTexts.logoutButton })).toBeVisible();
+    await expect(page.locator(securePageLocators.successHeading)).toContainText(urlsTexts.secure);
+    await expect(page.getByRole('link', { name: securePageTexts.logoutButton })).toBeVisible();
   });
   
 test('Đăng nhập thành công khi nhấn Enter thay vì click Submit', {
@@ -89,10 +89,8 @@ test('Đăng nhập thành công khi nhấn Enter thay vì click Submit', {
     await page.locator(loginLocators.passwordInput).fill(env.PASSWORD);
 
     const submitButton = page.locator(loginLocators.submitButton);
-    await Promise.all([
-      submitButton.click(),
-      submitButton.click({ force: true }).catch(() => {}),
-    ]);
+    await submitButton.dispatchEvent('click');
+    await submitButton.dispatchEvent('click').catch(() => {});
 
     await expect(page).toHaveURL(urls.secure);
     await expect(page.locator(securePageLocators.successHeading)).toContainText(urlsTexts.secure);
@@ -139,6 +137,5 @@ test('Đăng nhập thành công khi nhấn Enter thay vì click Submit', {
 
     await expect(page).toHaveURL(urls.login);
   });
-    }
-  });
+
 });

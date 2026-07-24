@@ -12,7 +12,7 @@ export class SecurePage extends BasePage {
 }
 
 export const securePageLocators = {
-  successHeading: '.post-title',
+  successHeading: 'h1',
 }
 
 export const securePageTexts = {
