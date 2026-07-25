@@ -242,3 +242,7 @@ A `setup` project runs before the browser projects:
      await expect(page.locator(dashboardLocators.heading)).toContainText(urlsTexts.dashboard);
    });
    ```
+
+## CI status
+
+Tests run automatically via GitHub Actions on every push to `main` or `Branch-1`.
