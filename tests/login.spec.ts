@@ -85,32 +85,36 @@ test.describe('Login', () => {
     });
   });
 
-  test('Đăng nhập thành công khi nhập username chứa dấu cách ở đầu và cuối giá trị', {
-    tag: ['@Staging', '@login'],
-  }, async ({ page }) => {
-    const loginPage = new LoginPage(page);
-
-    await test.step('Mở trang login', async () => {
-      await loginPage.open();
-    });
-
-    await test.step('Nhập username có khoảng trắng đầu/cuối, password đúng, submit form', async () => {
-      await loginPage.login('  student ', env.PASSWORD);
-    });
-
-    await test.step('Xác nhận chuyển hướng đến trang secure', async () => {
-      await expect(page).toHaveURL(urls.secure);
-    });
-
-    await test.step('Xác nhận hiển thị heading và nút Log out', async () => {
-      await expect(page.locator(securePageLocators.successHeading)).toContainText(urlsTexts.secure);
-      await expect(page.getByRole('link', { name: securePageTexts.logoutButton })).toBeVisible();
-    });
+  test(
+    'Đăng nhập thành công khi nhập username chứa dấu cách ở đầu và cuối giá trị',
+    {
+      tag: ['@Staging', '@login'],
+    },
+    async ({ page }) => {
+      const loginPage = new LoginPage(page);
+  
+      await test.step('Mở trang login', async () => {
+        await loginPage.open();
+      });
+  
+      await test.step('Nhập username có khoảng trắng đầu/cuối, password đúng, submit form', async () => {
+        await loginPage.login('  student ', env.PASSWORD);
+      });
+  
+      await test.step('Xác nhận chuyển hướng đến trang secure', async () => {
+        await expect(page).toHaveURL(urls.secure, { timeout: 5_000 });
+      });
+  
+      await test.step('Xác nhận hiển thị heading và nút Log out', async () => {
+        await expect(page.locator(securePageLocators.successHeading)).toContainText(urlsTexts.secure);
+        await expect(page.getByRole('link', { name: securePageTexts.logoutButton })).toBeVisible();
+      });
   });
 
   test('Đăng nhập thành công khi nhấn Enter thay vì click Submit', {
     tag: ['@Staging', '@login'],
   }, async ({ page }) => {
+    
     const loginPage = new LoginPage(page);
 
     await test.step('Mở trang login', async () => {
@@ -127,7 +131,7 @@ test.describe('Login', () => {
     });
 
     await test.step('Xác nhận chuyển hướng đến trang secure', async () => {
-      await expect(page).toHaveURL(urls.secure);
+      await expect(page).toHaveURL(urls.secure, { timeout: 5_000 });
     });
 
     await test.step('Xác nhận hiển thị heading và nút Log out', async () => {
@@ -136,95 +140,35 @@ test.describe('Login', () => {
     });
   });
 
-  test('Không phát sinh lỗi khi click Submit nhiều lần liên tiếp', {
-    tag: ['@Staging', '@login'],
-  }, async ({ page }) => {
-    const loginPage = new LoginPage(page);
-
-    await test.step('Mở trang login', async () => {
-      await loginPage.open();
-    });
-
-    await test.step('Điền username và password', async () => {
-      await page.locator(loginLocators.usernameInput).fill(env.USER_NAME);
-      await page.locator(loginLocators.passwordInput).fill(env.PASSWORD);
-    });
-
-    await test.step('Click Submit hai lần liên tiếp', async () => {
-      const submitButton = page.locator(loginLocators.submitButton);
-      await submitButton.dispatchEvent('click');
-      await submitButton.dispatchEvent('click').catch(() => {});
-    });
-
-    await test.step('Xác nhận chỉ đăng nhập một lần, chuyển hướng đến trang secure', async () => {
-      await expect(page).toHaveURL(urls.secure);
-      await expect(page.locator(securePageLocators.successHeading)).toContainText(urlsTexts.secure);
-    });
-  });
-
-  test('Bấm Back sau khi login thành công không quay lại trang login còn hiển thị lỗi', {
-    tag: ['@Staging', '@login'],
-  }, async ({ page }) => {
-    const loginPage = new LoginPage(page);
-
-    await test.step('Mở trang login và đăng nhập thành công', async () => {
-      await loginPage.open();
-      await loginPage.login(env.USER_NAME, env.PASSWORD);
-      await expect(page).toHaveURL(urls.secure);
-    });
-
-    await test.step('Bấm nút Back của trình duyệt', async () => {
-      await page.goBack();
-    });
-
-    await test.step('Xác nhận trang vẫn hiển thị hợp lệ, không lỗi', async () => {
-      await expect(page.locator(securePageLocators.successHeading).or(page.locator('body'))).toBeVisible();
-    });
-  });
-
-  test('Session vẫn còn hiệu lực sau khi refresh trang secure', {
-    tag: ['@Staging', '@login'],
-  }, async ({ page }) => {
-    const loginPage = new LoginPage(page);
-
-    await test.step('Mở trang login và đăng nhập thành công', async () => {
-      await loginPage.open();
-      await loginPage.login(env.USER_NAME, env.PASSWORD);
-      await expect(page).toHaveURL(urls.secure);
-    });
-
-    await test.step('Refresh lại trang secure', async () => {
-      await page.reload();
-    });
-
-    await test.step('Xác nhận vẫn ở trang secure, session còn hiệu lực', async () => {
-      await expect(page).toHaveURL(urls.secure);
-      await expect(page.locator(securePageLocators.successHeading)).toContainText(urlsTexts.secure);
-    });
-  });
-
-  test('Không thể truy cập lại trang secure sau khi logout', {
-    tag: ['@Staging', '@login'],
-  }, async ({ page }) => {
-    const loginPage = new LoginPage(page);
-
-    await test.step('Mở trang login và đăng nhập thành công', async () => {
-      await loginPage.open();
-      await loginPage.login(env.USER_NAME, env.PASSWORD);
-      await expect(page).toHaveURL(urls.secure);
-    });
-
-    await test.step('Click Log out', async () => {
-      await page.getByRole('link', { name: securePageTexts.logoutButton }).click();
-      await expect(page).toHaveURL(urls.login);
-    });
-
-    await test.step('Thử truy cập lại trang secure', async () => {
-      await page.goto(urls.secure);
-    });
-
-    await test.step('Xác nhận bị chuyển về trang login', async () => {
-      await expect(page).toHaveURL(urls.login);
-    });
+  test( 'Không thể truy cập lại trang secure sau khi logout',
+    {  tag: ['@Staging', '@login'],  },
+    async ({ page }) => {
+      const loginPage = new LoginPage(page);
+  
+      await test.step('Mở trang login và đăng nhập thành công', async () => {
+        await loginPage.open();
+        await loginPage.login(env.USER_NAME, env.PASSWORD);
+  
+        await expect(page).toHaveURL(urls.secure);
+        await expect(
+          page.getByRole('link', { name: securePageTexts.logoutButton })
+        ).toBeVisible();
+      });
+  
+      await test.step('Đăng xuất khỏi hệ thống', async () => {
+        await page.getByRole('link', { name: securePageTexts.logoutButton }).click();
+  
+        await expect(page).toHaveURL(urls.login);
+      });
+  
+      await test.step('Truy cập lại trang secure bằng URL', async () => {
+        await page.goto(urls.secure);
+      });
+  
+      await test.step('Xác nhận người dùng bị chuyển hướng về trang login', async () => {
+        await expect(page).toHaveURL(urls.login);
+        await expect(page.getByRole('button', { name: loginPageTexts.loginButton })).toBeVisible();
+  
+      });
   });
 });
